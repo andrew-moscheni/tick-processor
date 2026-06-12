@@ -19,7 +19,7 @@ programming, concurrent data pipelines, and applied statistics.
 - Benchmarked at 60,908,739 ticks/sec (single-threaded stats engine)
 
 ## Project structure
-tick-processor/
+tick-processor/  
 ├── include/          # Header files  
 │   ├── tick.h        # Tick struct and parse_csv declaration  
 │   ├── stats_engine.h  
