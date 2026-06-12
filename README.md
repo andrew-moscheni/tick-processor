@@ -20,21 +20,21 @@ programming, concurrent data pipelines, and applied statistics.
 
 ## Project structure
 tick-processor/
-├── include/          # Header files
-│   ├── tick.h        # Tick struct and parse_csv declaration
-│   ├── stats_engine.h
-│   ├── tick_queue.h
-│   └── pipeline.h
-├── src/              # Implementation
-│   ├── parser.cpp
-│   ├── stats_engine.cpp
-│   ├── tick_queue.cpp
-│   ├── pipeline.cpp
-│   ├── main.cpp
-│   └── benchmark.cpp
-├── tests/
-│   └── test_main.cpp
-└── CMakeLists.txt
+├── include/          # Header files  
+│   ├── tick.h        # Tick struct and parse_csv declaration  
+│   ├── stats_engine.h  
+│   ├── tick_queue.h  
+│   └── pipeline.h  
+├── src/              # Implementation  
+│   ├── parser.cpp  
+│   ├── stats_engine.cpp  
+│   ├── tick_queue.cpp  
+│   ├── pipeline.cpp  
+│   ├── main.cpp  
+│   └── benchmark.cpp  
+├── tests/  
+│   └── test_main.cpp  
+└── CMakeLists.txt  
 ## Build
 
 Requires GCC 11+, CMake 3.14+, and libgtest-dev on Ubuntu.
