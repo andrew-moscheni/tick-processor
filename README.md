@@ -88,6 +88,10 @@ more than 3 standard deviations from the rolling mean. On
 2024-01-15 BTC/USDT data this detected 210 anomalies
 out of 487,203 trades (~0.000431).
 
+## Future Implementations
+
+The next stage of this project is to create a streaming pipeline to gather live market data and implement it in this tick processor. Once that is completed, common pricing models (momentum-based, Black-Scholes model, binomial model, etc.) will be created and added as modules in this program.
+
 ## Data source
 
 Binance public trade data:
