@@ -1,1 +1,5 @@
 data/BTCUSDT-trades-2024-01-15.csv
+venv/
+.venv/
+env/
+venv/

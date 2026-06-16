@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
 	ticker_list = args.tickers
 	start_date = args.start[0]
-	end_date = args.end if args.end else datetime.date.today().isoformat()
+	end_date = args.end[0] if args.end else datetime.date.today().isoformat()
 
 	data = yf.download(ticker_list, start=start_date, end=end_date, group_by='tickers')
 
