@@ -1,43 +1,65 @@
-# Tick Processor
+# Alpaca Terminal
 
-A high-performance financial tick data pipeline in C++17.
-Ingests real-time trade data, computes rolling statistics,
-and detects price anomalies using Welford's online algorithm.
+A real-time market data terminal in C++17. Connects to Alpaca's
+WebSocket feed, ingests live trade and bar data for any set of
+tickers, and renders a continuously updating table directly in
+the CLI — overwriting each frame in-place to keep the display
+compact and readable.
 
-Built as a portfolio project demonstrating C++17, Linux systems
-programming, concurrent data pipelines, and applied statistics.
+Built as a portfolio project demonstrating C++17, WebSocket
+networking with libcurl, concurrent data pipelines, and
+ANSI terminal rendering.
 
 ## Features
 
-- CSV parser using memory-mapped-style streaming reads
-- Welford's online algorithm for numerically stable rolling
-  mean, variance, and standard deviation
-- Z-score anomaly detection (flags trades beyond 3σ)
-- Thread-safe producer/consumer queue using std::mutex and
-  std::condition_variable
-- 14 unit tests across parser, stats engine, and queue
-- Benchmarked at 60,908,739 ticks/sec (single-threaded stats engine)
+- Live WebSocket connection to Alpaca's IEX data feed via libcurl
+- Subscribes to both bar (`b`/`d`) and trade (`t`) message types,
+  updating OHLCV fields between bar intervals for real-time close prices
+- Thread-safe producer/consumer architecture using `std::mutex`,
+  `std::condition_variable`, and `std::atomic`
+- In-place CLI rendering with ANSI escape sequences — rewrites
+  the table every 500ms without scrolling
+- Color-coded close price (green if close ≥ open, red if below)
+- Displays: symbol, open, close, high, low, volume, trade count,
+  VWAP, and last updated timestamp
+- Graceful shutdown on Ctrl+C — restores cursor and cleans up
+  the WebSocket connection
 
 ## Project structure
-tick-processor/
-├── include/          # Header files
-│   ├── tick.h        # Tick struct and parse_csv declaration
-│   ├── stats_engine.h
-│   ├── tick_queue.h
-│   └── pipeline.h
-├── src/              # Implementation
-│   ├── parser.cpp
-│   ├── stats_engine.cpp
-│   ├── tick_queue.cpp
-│   ├── pipeline.cpp
-│   ├── main.cpp
-│   └── benchmark.cpp
-├── tests/
-│   └── test_main.cpp
-└── CMakeLists.txt
-## Build
 
-Requires GCC 11+, CMake 3.14+, and libgtest-dev on Ubuntu.
+```
+src/
+├── main.cpp   # Full implementation (single file)
+└── CMakeLists.txt
+```
+
+## Dependencies
+
+- GCC 11+ or Clang 13+
+- CMake 3.15+
+- libcurl 7.86+ (WebSocket support required)
+- nlohmann/json (auto-fetched by CMake if not found on system)
+
+> **libcurl version:** WebSocket support (`curl_ws_send` / `curl_ws_recv`)
+> was added in libcurl 7.86.0. Check your version with `curl --version`.
+> If you're on Ubuntu 22.04 or earlier you may need to build curl from source.
+
+## Credentials
+
+Add your Alpaca API key and secret to the top of `main.cpp`:
+
+```cpp
+const char* API_KEY        = "YOUR_API_KEY";
+const char* API_SECRET_KEY = "YOUR_API_SECRET";
+```
+
+> **Important:** move these into a separate config file and add it to
+> `.gitignore` before committing. The comment in the source flags this.
+
+The program connects to the IEX feed by default (`stream.data.alpaca.markets/v2/iex`).
+To use the SIP feed (paid subscription), update `WS_URL` accordingly.
+
+## Build
 
 ```bash
 mkdir build && cd build
@@ -48,47 +70,36 @@ make
 ## Run
 
 ```bash
-# Process one day of BTC/USDT tick data
-./tick_processor
+# Stream live data for one or more tickers
+./src AAPL MSFT TSLA
 
-# Run the test suite
-./run_tests
-
-# Run the benchmark (1M synthetic ticks)
-./benchmark
+# Any number of tickers is supported
+./src SPY QQQ NVDA AMZN META
 ```
 
-## Benchmark results
+Press `Ctrl+C` to exit cleanly.
 
-Measured on AMD Ryzen 5 & Ubuntu version 24.04.1.
+## How it works
 
-| Mode | Ticks | Time | Throughput |
-|---|---|---|---|
-| Stats engine (single-threaded) | 1,000,000 | 16.42 ms | 60,908,739 ticks/sec |
-| Full pipeline (two threads) | 1,000,000 | 179.44 ms | 5,572,769 ticks/sec |
+The program splits into two threads on startup:
 
-The single-threaded stats engine outperforms the full pipeline
-because Welford's algorithm is cheap (~3 arithmetic ops per tick)
-and the two-thread pipeline pays mutex/condition_variable overhead
-on every tick. In a real system the producer would be doing
-heavier I/O work, making the concurrency benefit larger.
+**Processor thread** — owns the network connection. Authenticates
+with Alpaca, subscribes to bars and trades for the requested tickers,
+then loops receiving WebSocket frames. Bar messages (`b`/`d`) populate
+all OHLCV fields at once; trade messages (`t`) update the close price,
+high, low, and volume tick-by-tick between bar arrivals.
 
-## Key implementation notes
+**Client (render) thread** — waits on a condition variable until the
+processor signals that the WebSocket handshake is complete, then enters
+a 500ms render loop. Each iteration builds the full table into an
+`ostringstream` before printing, then repositions the cursor using
+`\033[{N}A\033[J` to overwrite the previous frame without scrolling.
 
-**Welford's algorithm** — updates mean and variance in a single
-pass with O(1) memory. Numerically stable for large datasets
-unlike the naive two-pass approach.
-
-**Bounded queue** — the producer blocks when the queue reaches
-capacity, preventing unbounded memory growth if the consumer
-falls behind.
-
-**Z-score anomaly detection** — flags any trade whose price is
-more than 3 standard deviations from the rolling mean. On
-2024-01-15 BTC/USDT data this detected 210 anomalies
-out of 487,203 trades (~0.000431).
+Both threads share a `std::map<string, BarData>` protected by a mutex.
+The `dirty` flag on each `BarData` entry tracks which rows have changed
+since the last render, available for future use (e.g. row flash on update).
 
 ## Data source
 
-Binance public trade data:
-https://data.binance.vision/data/spot/daily/trades/BTCUSDT/
+Alpaca Markets WebSocket API:
+https://docs.alpaca.markets/reference/stocklatestbars

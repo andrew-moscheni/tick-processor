@@ -1,29 +1,29 @@
-cmake_minimum_required(VERSION 3.14)
-project(TickProcessor VERSION 1.0)
+cmake_minimum_required(VERSION 3.15)
+project(alpaca_terminal)
 
-# Use C++17
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# turn on warnings
-add_compile_options(-Wall -Wextra -O2)
+find_package(CURL REQUIRED)
 
-add_executable(tick_processor src/main.cpp)
-target_link_libraries(tick_processor pthread)
-target_include_directories(tick_processor PRIVATE include)
+find_package(nlohmann_json QUIET)
+if (NOT nlohmann_json_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(
+        nlohmann_json
+        URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+    )
+    FetchContent_MakeAvailable(nlohmann_json)
+endif()
 
-# test setup
-#find_package(GTest REQUIRED)
-#include_directories(${GTEST_INCLUDE_DIRS})
+add_executable(alpaca_terminal alpaca_terminal.cpp)
 
-# test the executable
-#add_executable(run_tests tests/test_main.cpp)
-#target_link_libraries(run_tests ${GTEST_LIBRARIES} pthread)
-#target_include_directories(run_tests PRIVATE include)
-
-# benchmarking
-add_executable(benchmark
-	src/benchmark.cpp
+target_link_libraries(alpaca_terminal
+    PRIVATE
+        CURL::libcurl
+        nlohmann_json::nlohmann_json
+        Threads::Threads
 )
-target_include_directories(benchmark PRIVATE include)
-target_link_libraries(benchmark pthread)
+
+find_package(Threads REQUIRED)
+target_link_libraries(alpaca_terminal PRIVATE Threads::Threads)
