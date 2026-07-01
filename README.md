@@ -52,10 +52,10 @@ version_history.txt
 
 ## Run
 
-``` ```
+```
+```
 
-## Data source
+## Data sources
 
-Yahoo Finance Documentation:
-
-Research Papers:
+- [Yahoo Finance Documentation] (https://pypi.org/project/yfinance/)
+- [Research Papers] (https://arxiv.org/list/q-fin/recent)
